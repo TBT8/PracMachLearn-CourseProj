@@ -1,0 +1,116 @@
+---
+title: "Practical Machine Learning - Course Project"
+author: "Thad Truman"
+date: "Monday, September 15, 2014"
+output: html_document
+---
+### Summary Overview
+The goal of this procedure is to determine - based on accelerometer, gyroscope and magnetometer readings - whether an excercise is done correctly or not.  
+
+My method of choice was a random forest.  I chose this method due to its accuracy, efficiency, and unbiased estimate of out-of-sample error.
+
+The model correctly predicted the 20 test cases, and for the time spent running the algorithm (< 2 minutes), has a low out-of-sample error rate of 0.28%.
+
+The data for this project was sourced from:
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3DPX5gfB7
+
+```{r model fit, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE}
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+ #             "PracMachLearnTraining.csv")
+
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+  #            "PracMachLearnTesting.csv")
+library(caret)
+library(randomForest)
+training <- read.csv("PracMachLearnTraining.csv")
+testing <- read.csv("PracMachLearnTesting.csv")
+
+training <- training[,-1]
+testing <- testing[,-1]
+
+rmtest <- numeric()
+
+for (i in 1:159){
+        if(any(is.na(testing[,i]))){
+                rmtest <- c(rmtest, i)
+        }else{rmtest <- rmtest}
+}
+rmtest <- c(2,3,4,5,6, rmtest)
+testing1 <- testing[,-rmtest]
+
+training1 <- training[,-rmtest]
+
+
+
+#if (!file.exists("rfModel.save")) {
+#  rfModel <- code_you_use_to_train_your_model
+#  save(rfModel, file="rfModel.save")
+#} else {
+#  load("rfModel.save")
+#}
+
+set.seed(344)
+rfFit<- train(classe ~ ., data = training1, method = "rf", ntree= 501, tuneGrid=data.frame(mtry=14), trControl = trainControl(method="none"))
+```
+
+```{r, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE}
+predrfFitTrain <- predict(rfFit, newdata = training1)
+predrfFitTest <- predict(rfFit, newdata = testing1)
+trainTable <- table(predrfFitTrain, training1$classe)
+
+
+```
+
+### Cleaning the Data
+After downloading the data it became apparent that not all of the predictors would be necessary. I removed all the variables from the training and testing set that had NA's in the test set.
+
+There are some time variables in the dataset that appear to describe the chronological order in which the activity was performed.  The dataset was compiled by having the participants do the correct excercise first, followed by the different incorrect movements for the exercise last. I removed the time variables since their correlation to the outcome variable undermines the point of the model.  (see plot on last page)
+
+This resulted in the below columns being removed from the train and test sets.
+
+```{r, echo=FALSE}
+names(training)[rmtest]
+```
+
+### Tuning the Model
+After removing the unecessary variables, I ran the tuneRF function to determine what the mtry argument should be in the random forest model.  The mtry argument controls how many variables are selected at random to determine the split at each node.  Generally, the model will try a few different values, but I wanted to save some computation time so I estimated an optimal value. Based on the out-of-bag error chart below, 14 provides an acceptable error rate and has the advantage of being a low number which decreases the correlation between trees in the forest and the run-time of the algorithm.
+
+
+
+```{r, echo=FALSE, message=FALSE}
+set.seed(344)
+library(caret)
+library(randomForest)
+tuneRF(training1[,-54], training1[,54])
+```
+
+I changed the number of trees from the default of 500 to 501 to break any possible ties.
+
+When using random forests there is really no need for cross-validation since each tree is contructed using a bootstrap method where about one-third of the cases are left out of the bootstrap .  Each case left out is sent down the tree to determine an out-of-bag error rate that is unbiased.(see: http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm)
+
+### Final Model
+
+The details of the final model are below.
+The out-of-bag error rate (aka out-of-sample error rate) is 0.28%.  You can also see the confustion matrix.
+
+```{r, echo=FALSE}
+rfFit$finalModel
+```
+
+The model predicted the following classes for the the test set, which are all correct.
+
+```{r echo=FALSE}
+predrfFitTest
+```
+
+
+### Classe by Timestamp and User
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(aes(x=user_name, y = cvtd_timestamp,  color=classe), data=training) +
+        geom_point(size=2, alpha=.5 , position= "jitter")
+
+```
