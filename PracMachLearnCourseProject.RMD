@@ -18,11 +18,11 @@ Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activ
 Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3DPX5gfB7
 
 ```{r model fit, echo=FALSE, cache=TRUE, message=FALSE, warning=FALSE}
-download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
-              "PracMachLearnTraining.csv")
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+#              "PracMachLearnTraining.csv")
 
-download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
-             "PracMachLearnTesting.csv")
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+#             "PracMachLearnTesting.csv")
 library(caret)
 library(randomForest)
 training <- read.csv("PracMachLearnTraining.csv")
@@ -62,7 +62,7 @@ trainTable <- table(predrfFitTrain, training1$classe)
 ### Cleaning the Data
 After downloading the data it became apparent that not all of the predictors would be necessary. I removed all the variables from the training and testing set that had NA's in the test set.
 
-There are some time variables in the dataset that appear to describe the chronological order in which the activity was performed.  The dataset was compiled by having the participants do the correct excercise first, followed by the different incorrect movements for the exercise last. I removed the time variables since their correlation to the outcome variable undermines the point of the model.  (see plot on last page)
+There are some time variables in the dataset that appear to describe the chronological order in which the activity was performed.  The dataset was compiled by having the participants do the correct excercise first, followed by the different incorrect movements for the exercise last. I removed the time variables since their correlation to the outcome variable undermines the point of the model.  (see plot in Appendix)
 
 This resulted in the below columns being removed from the train and test sets.
 
@@ -102,7 +102,8 @@ predrfFitTest
 ```
 
 
-### Classe by Timestamp and User
+### Appendix
+#### Classe by Timestamp and User
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(aes(x=user_name, y = cvtd_timestamp,  color=classe), data=training) +
